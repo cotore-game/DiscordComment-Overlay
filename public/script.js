@@ -19,12 +19,15 @@ socket.on("comment", text => {
 
 // 設定を受信
 socket.on("settings", settings => {
-    console.log("送信する設定:", settings);
+    console.log("受信した設定:", settings);
     
     if (settings.font_size) {
         root.style.setProperty('--font-size', `${settings.font_size}px`);
     }
     if (settings.speed) {
         root.style.setProperty('--speed', `${settings.speed}s`);
+    }
+    if (settings.color) {
+        root.style.setProperty('--color', settings.color);
     }
 });
