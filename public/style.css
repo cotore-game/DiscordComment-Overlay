@@ -1,31 +1,37 @@
 body {
-  margin: 0;
-  background: transparent;
-  overflow: hidden;
+    margin: 0;
+    background: transparent;
+    overflow: hidden;
+}
+
+:root {
+    --font-size: 24px;
+    --speed: 8s;
 }
 
 .comment {
-  position: absolute;
-  white-space: nowrap;
-  font-family: 'Helvetica Neue', Arial, sans-serif;
-  font-size: 24px;
-  font-weight: bold;
-  color: white;
-  text-shadow: 
-    -1px -1px 0 #000,  
-    1px -1px 0 #000,
-    -1px 1px 0 #000,
-    1px 1px 0 #000;
-  animation: move 8s linear forwards;
+    position: absolute;
+    white-space: nowrap;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-weight: bold;
+    color: white;
+    text-shadow: 
+        -1px -1px 0 #000,  
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
+  
+    font-size: var(--font-size);
+    animation: move var(--speed) linear forwards;
 }
 
 @keyframes move {
-  from {
-    right: -200px;
-    top: calc(10% + 80% * var(--rand));
-  }
-  to {
-    right: 100%;
-    top: calc(10% + 80% * var(--rand));
-  }
+    from {
+        right: -200px;
+        top: calc(10% + 80% * var(--rand));
+    }
+    to {
+        right: 100%;
+        top: calc(10% + 80% * var(--rand));
+    }
 }
