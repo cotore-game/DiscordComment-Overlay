@@ -19,8 +19,9 @@ const client = new Client({
     ],
 });
 
-// コマンドと設定の管理
+// コマンドとエイリアスを両方管理するMap
 const commands = new Map();
+const aliases = new Map();
 
 // 設定管理モジュール
 const settingsManager = require('./settings')(io);
@@ -30,6 +31,11 @@ const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('
 for (const file of commandFiles) {
     const command = require(`./commands/${file}`);
     commands.set(command.name, command);
+    if (command.aliases) {
+        command.aliases.forEach(alias => {
+            aliases.set(alias, command.name);
+        });
+    }
 }
 
 // ユーザーに送信するコメントをオーバーレイに流す関数
@@ -43,22 +49,42 @@ client.on("messageCreate", async (msg) => {
 
     const args = msg.content.trim().split(/ +/);
     const commandName = args.shift().toLowerCase();
-    const subCommandName = args.shift()?.toLowerCase();
-    
+
     // コマンドプレフィックスのチェックと実行
     if (commandName === '!nico') {
-        if (commands.has(subCommandName)) {
-            const command = commands.get(subCommandName);
-            try {
-                await command.execute(msg, args, { settingsManager });
-            } catch (error) {
-                console.error(error);
-                msg.reply('コマンドの実行中にエラーが発生しました。');
-            }
-        } else {
-            // コマンドが見つからない場合のデフォルト動作（開始/監視）
-            settingsManager.setWatchingChannelId(msg.channelId);
-            msg.reply('このチャンネルのメッセージを監視します。');
+        const subCommandName = args.shift()?.toLowerCase();
+
+        if (!subCommandName) {
+            const embed = new EmbedBuilder()
+                .setColor(0x0099FF)
+                .setTitle('Discordコメントオーバーレイコマンド一覧')
+                .setDescription('`!nico <コマンド> [引数]` で使用できます。')
+                .addFields(
+                    { name: 'start または s', value: 'コメントの監視を開始します。', inline: true },
+                    { name: 'end または e', value: 'コメントの監視を停止します。', inline: true },
+                    { name: 'settings', value: '現在の設定一覧を表示します。', inline: true },
+                    { name: 'size [数字]', value: 'フォントサイズを変更/表示します。', inline: true },
+                    { name: 'speed [数字]', value: 'コメントの流れるスピードを変更/表示します。', inline: true },
+                    { name: 'color [カラーコード]', value: '文字色を変更/表示します。', inline: true }
+                );
+            msg.reply({ embeds: [embed] });
+            return;
+        }
+
+        // エイリアスをチェックし、存在する場合は元のコマンド名を取得
+        const resolvedCommandName = aliases.get(subCommandName) || subCommandName;
+        const command = commands.get(resolvedCommandName);
+
+        if (!command) {
+            msg.reply(`'${subCommandName}' というコマンドは見つかりませんでした。\nコマンド一覧は \`!nico\` で確認できます。`);
+            return;
+        }
+
+        try {
+            await command.execute(msg, args, { settingsManager });
+        } catch (error) {
+            console.error(error);
+            msg.reply('コマンドの実行中にエラーが発生しました。');
         }
         return;
     }
