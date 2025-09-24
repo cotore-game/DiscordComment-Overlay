@@ -2,7 +2,7 @@ const fs = require('fs');
 
 const CONFIG_FILE = 'config.json';
 const DEFAULT_SETTINGS = {
-    font_size: 24,
+    font_size: 60,
     speed: 8,
     color: '#ffffff',
     watching_channel_id: null
