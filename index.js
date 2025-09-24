@@ -65,7 +65,9 @@ client.on("messageCreate", async (msg) => {
                     { name: 'settings', value: '現在の設定一覧を表示します。', inline: true },
                     { name: 'size [数字]', value: 'フォントサイズを変更/表示します。', inline: true },
                     { name: 'speed [数字]', value: 'コメントの流れるスピードを変更/表示します。', inline: true },
-                    { name: 'color [カラーコード]', value: '文字色を変更/表示します。', inline: true }
+                    { name: 'color [カラーコード]', value: '文字色を変更/表示します。', inline: true },
+                    { name: 'outline または o [数字]', value: 'アウトラインのサイズを変更/表示します。', inline: true },
+                    { name: 'outline-color または oc [カラーコード]', value: 'アウトラインの色を変更/表示します。', inline: true }
                 );
             msg.reply({ embeds: [embed] });
             return;

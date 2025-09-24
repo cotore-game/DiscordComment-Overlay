@@ -5,6 +5,8 @@ const DEFAULT_SETTINGS = {
     font_size: 60,
     speed: 8,
     color: '#ffffff',
+    outline_size: 6,
+    outline_color: '#000000',
     watching_channel_id: null
 };
 

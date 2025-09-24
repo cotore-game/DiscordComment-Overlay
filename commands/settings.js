@@ -11,7 +11,9 @@ module.exports = {
             .addFields(
                 { name: 'フォントサイズ', value: `${currentSettings.font_size}px`, inline: true },
                 { name: 'スピード', value: `${currentSettings.speed}秒`, inline: true },
-                { name: '文字色', value: `${currentSettings.color}`, inline: true }
+                { name: '文字色', value: `${currentSettings.color}`, inline: true },
+                { name: 'アウトラインサイズ', value: `${currentSettings.outline_size}px`, inline: true },
+                { name: 'アウトライン色', value: `${currentSettings.outline_color}`, inline: true }
             );
         msg.reply({ embeds: [embed] });
     },

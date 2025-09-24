@@ -41,4 +41,11 @@ socket.on("settings", settings => {
     if (settings.speed) {
         root.style.setProperty('--speed', `${settings.speed}s`);
     }
+
+    if (settings.outline_size) {
+        root.style.setProperty('--outline-size', `${settings.outline_size}px`);
+    }
+    if (settings.outline_color) {
+        root.style.setProperty('--outline-color', settings.outline_color);
+    }
 });
