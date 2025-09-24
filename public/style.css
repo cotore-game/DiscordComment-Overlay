@@ -5,9 +5,8 @@ body {
 }
 
 :root {
-    --font-size: 24px;
     --speed: 8s;
-    --color: #ffffff;
+    --viewport-width: 100vw;
 }
 
 .comment {
@@ -15,24 +14,22 @@ body {
     white-space: nowrap;
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-weight: bold;
-    color: var(--color);
     text-shadow: 
         -1px -1px 0 #000,  
         1px -1px 0 #000,
         -1px 1px 0 #000,
         1px 1px 0 #000;
   
-    font-size: var(--font-size);
     animation: move var(--speed) linear forwards;
 }
 
 @keyframes move {
     from {
-        right: -200px;
+        right: calc(-1 * var(--comment-width));
         top: calc(10% + 80% * var(--rand));
     }
     to {
-        right: 100%;
+        right: var(--viewport-width);
         top: calc(10% + 80% * var(--rand));
     }
 }
