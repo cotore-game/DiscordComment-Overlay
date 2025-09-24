@@ -7,6 +7,8 @@ body {
 :root {
     --speed: 8s;
     --viewport-width: 100vw;
+    --font-size: 60px;
+    --color: #ffffff;
     --outline-size: 2px;
     --outline-color: #000000;
 }
@@ -16,11 +18,10 @@ body {
     white-space: nowrap;
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-weight: bold;
-    text-shadow: 
-        calc(-1 * var(--outline-size)) calc(-1 * var(--outline-size)) 0 var(--outline-color),  
-        var(--outline-size) calc(-1 * var(--outline-size)) 0 var(--outline-color),
-        calc(-1 * var(--outline-size)) var(--outline-size) 0 var(--outline-color),
-        var(--outline-size) var(--outline-size) 0 var(--outline-color);
+    font-size: var(--font-size);
+    color: var(--color);
+    -webkit-text-stroke-width: var(--outline-size);
+    -webkit-text-stroke-color: var(--outline-color);
   
     animation: move var(--speed) linear forwards;
 }
