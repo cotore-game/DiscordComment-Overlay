@@ -16,15 +16,11 @@ socket.on("comment", text => {
     // 縦位置ランダム
     div.style.setProperty("--rand", Math.random());
     
-    // フォントサイズと色を直接適用
-    div.style.fontSize = `${currentSettings.font_size}px`;
-    div.style.color = currentSettings.color;
-    
     div.textContent = text;
     
     // HTML追加
     document.body.appendChild(div);
-    
+
     // コメントの幅を取得してCSS変数に設定
     const commentWidth = div.offsetWidth;
     div.style.setProperty("--comment-width", `${commentWidth}px`);
@@ -40,5 +36,17 @@ socket.on("settings", settings => {
     currentSettings = settings;
     if (settings.speed) {
         root.style.setProperty('--speed', `${settings.speed}s`);
+    }
+    if (settings.font_size) {
+        root.style.setProperty('--font-size', `${settings.font_size}px`);
+    }
+    if (settings.color) {
+        root.style.setProperty('--color', settings.color);
+    }
+    if (settings.outline_size) {
+        root.style.setProperty('--outline-size', `${settings.outline_size}px`);
+    }
+    if (settings.outline_color) {
+        root.style.setProperty('--outline-color', settings.outline_color);
     }
 });

@@ -5,10 +5,12 @@ const DEFAULT_SETTINGS = {
     font_size: 60,
     speed: 8,
     color: '#ffffff',
-    watching_channel_id: null
+    outline_size: 2,
+    outline_color: '#000000',
 };
 
 let currentSettings = { ...DEFAULT_SETTINGS };
+let watchingChannelId = null;
 let io;
 
 module.exports = (socketIo) => {
@@ -42,17 +44,23 @@ module.exports = (socketIo) => {
         io.emit("settings", currentSettings);
     }
     
+    // チャンネルIDのsetterとgetter
+    const setWatchingChannelId = (id) => {
+        watchingChannelId = id;
+    };
+
+    const getWatchingChannelId = () => {
+        return watchingChannelId;
+    };
+    
     // 各種getterとsetter
     return {
         loadSettings,
         saveSettings,
         emitSettings,
         getSettings: () => currentSettings,
-        setWatchingChannelId: (id) => {
-            currentSettings.watching_channel_id = id;
-            saveSettings();
-        },
-        getWatchingChannelId: () => currentSettings.watching_channel_id,
+        setWatchingChannelId,
+        getWatchingChannelId,
         setSetting: (key, value) => {
             currentSettings[key] = value;
             saveSettings();

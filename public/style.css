@@ -7,6 +7,10 @@ body {
 :root {
     --speed: 8s;
     --viewport-width: 100vw;
+    --font-size: 60px;
+    --color: #ffffff;
+    --outline-size: 2px;
+    --outline-color: #000000;
 }
 
 .comment {
@@ -14,11 +18,10 @@ body {
     white-space: nowrap;
     font-family: 'Helvetica Neue', Arial, sans-serif;
     font-weight: bold;
-    text-shadow: 
-        -3px -3px 0 #000,  
-        3px -3px 0 #000,
-        -3px 3px 0 #000,
-        3px 3px 0 #000;
+    font-size: var(--font-size);
+    color: var(--color);
+    -webkit-text-stroke-width: var(--outline-size);
+    -webkit-text-stroke-color: var(--outline-color);
   
     animation: move var(--speed) linear forwards;
 }
