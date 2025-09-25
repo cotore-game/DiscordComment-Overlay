@@ -7,7 +7,7 @@ const { Server } = require('socket.io');
 const mockServer = http.createServer();
 const mockIo = new Server(mockServer);
 
-// index.jsのsettingsManager変数をモック
+// settingsManagerのモックを作成し、テストで操作可能にする
 const mockSettingsManager = {
     loadSettings: jest.fn(),
     saveSettings: jest.fn(),
@@ -16,7 +16,8 @@ const mockSettingsManager = {
         font_size: 60,
         speed: 8,
         color: '#ffffff',
-        watching_channel_id: 'mock-channel-id',
+        outline_size: 2,
+        outline_color: '#000000',
     })),
     setWatchingChannelId: jest.fn(),
     getWatchingChannelId: jest.fn(() => 'mock-channel-id'),
@@ -24,95 +25,95 @@ const mockSettingsManager = {
 };
 
 // settings.jsモジュール全体をモック
-jest.mock('../settings.js', () => {
+jest.mock('../settings', () => {
+    // index.jsがsettings.jsを呼び出すと、このモック関数が返される
     return jest.fn(() => mockSettingsManager);
 });
 
-// index.jsモジュール全体をモック
-jest.mock('../index', () => {
-    // index.jsの内部で使われる依存関係をモックする
-    const mockFs = {
-        readdirSync: jest.fn(() => []),
-    };
+// fsモジュールをモックし、ファイル読み込みを回避
+jest.mock('fs', () => ({
+    ...jest.requireActual('fs'),
+    // commandsディレクトリの読み込みを回避
+    readdirSync: jest.fn(() => []), 
+}));
 
-    const mockDiscordClient = {
-        user: { tag: 'TestBot#1234' },
-        on: jest.fn((event, callback) => {
-            // messageCreateイベントハンドラを保存
-            if (event === 'messageCreate') {
-                module.exports.mockMessageCreate = callback;
+// discord.jsモジュールをモック
+jest.mock('discord.js', () => {
+    // Discordイベントを制御するためのハンドラーを保存するオブジェクト
+    const eventHandlers = {};
+
+    return {
+        // Clientクラスのコンストラクタをモック
+        Client: jest.fn(() => ({
+            user: { tag: 'TestBot#1234' },
+            on: jest.fn((event, callback) => {
+                eventHandlers[event] = callback;
+            }),
+            once: jest.fn((event, callback) => {
+                eventHandlers[event] = callback;
+            }),
+            login: jest.fn(() => {
+                // loginが呼ばれたらreadyイベントを即座に発火
+                if (eventHandlers.ready) {
+                    eventHandlers.ready();
+                }
+            }),
+        })),
+        GatewayIntentBits: {
+            Guilds: 1,
+            GuildMessages: 1,
+            MessageContent: 1,
+        },
+        EmbedBuilder: jest.fn(() => ({
+            setColor: jest.fn(() => ({
+                setTitle: jest.fn(() => ({
+                    addFields: jest.fn(() => ({
+                        setDescription: jest.fn(() => ({}))
+                    }))
+                }))
+            })),
+        })),
+        // テストコードからイベントをトリガーするためのヘルパー関数
+        __triggerEvent: (event, ...args) => {
+            if (eventHandlers[event]) {
+                eventHandlers[event](...args);
             }
-        }),
-        once: jest.fn((event, callback) => {
-            // readyイベントを保存し、ログイン時に呼び出せるようにする
-            if (event === 'ready') {
-                module.exports.mockReady = callback;
-            }
-        }),
-        login: jest.fn(() => {
-            // loginが呼ばれたらreadyイベントをトリガー
-            if (module.exports.mockReady) {
-                module.exports.mockReady();
-            }
-        }),
+        },
     };
-
-    // index.jsのメインロジックを模倣
-    const moduleExports = {
-        server: mockServer,
-        io: mockIo,
-        // テスト用のユーティリティ関数
-        mockMessageCreate: null,
-        mockReady: null,
-    };
-
-    // index.jsが実行されると仮定して、依存関係を注入して初期化
-    require('fs').readdirSync = mockFs.readdirSync;
-    require('discord.js').Client = jest.fn(() => mockDiscordClient);
-    require('../settings.js').mockImplementation(() => mockSettingsManager);
-
-    // テストに必要な変数をエクスポート
-    moduleExports.server = mockServer;
-    moduleExports.io = mockIo;
-
-    return moduleExports;
 });
 
 describe('E2E Test: Web Server and Overlay Communication', () => {
+    let server;
     let browser;
     let page;
-    let server;
-    let mockMessageCreate;
-
+    
     beforeAll(async () => {
-        // index.jsモジュールをロードし、モックされたインスタンスを取得
-        const indexModule = require('../index');
-        server = indexModule.server;
-        mockMessageCreate = indexModule.mockMessageCreate;
-
-        // サーバーを起動
+        // テストの前に、モックされたサーバーを起動
+        server = mockServer;
         server.listen(3000);
 
-        // ブラウザを起動
+        // Playwrightでブラウザを起動
         browser = await chromium.launch();
         page = await browser.newPage();
-    }, 30000);
+    }, 30000); // タイムアウトを延長
 
     afterAll(async () => {
-        // サーバーとブラウザを確実に閉じる
-        if (browser) {
-            await browser.close();
-        }
-        if (server) {
-            await new Promise(resolve => server.close(resolve));
-        }
+        // テストの後に、ブラウザとサーバーを確実に閉じる
+        await browser.close();
+        await new Promise(resolve => server.close(resolve));
     }, 30000);
 
-    test('should display a comment when a message is sent', async () => {
-        // `index.html`をブラウザで開く
+    test('should display a comment when a message is sent to the watching channel', async () => {
+        // `index.js`をロードし、モックされた環境で実行
+        const indexModule = require('../index');
+
+        // Playwrightで`index.html`を開く
         await page.goto(`file://${path.join(__dirname, '../public/index.html')}`);
 
-        // ダミーのメッセージを送信
+        // 監視チャンネルIDを設定
+        mockSettingsManager.setWatchingChannelId('mock-channel-id');
+
+        // ダミーのメッセージオブジェクトを作成
         const mockMsg = {
             author: { bot: false },
             content: 'Hello, test!',
@@ -120,7 +121,8 @@ describe('E2E Test: Web Server and Overlay Communication', () => {
         };
 
         // メッセージ作成イベントをトリガー
-        mockMessageCreate(mockMsg);
+        const { __triggerEvent } = require('discord.js');
+        __triggerEvent('messageCreate', mockMsg);
 
         // 新しいdiv要素が表示されるまで待機
         await page.waitForSelector('.comment', { state: 'visible', timeout: 5000 });
