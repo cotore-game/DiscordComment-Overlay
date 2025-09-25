@@ -24,7 +24,7 @@ const mockSettingsManager = {
 };
 
 // settings.jsモジュール全体をモック
-jest.mock('../settings', () => {
+jest.mock('../settings.js', () => {
     return jest.fn(() => mockSettingsManager);
 });
 
@@ -69,7 +69,7 @@ jest.mock('../index', () => {
     // index.jsが実行されると仮定して、依存関係を注入して初期化
     require('fs').readdirSync = mockFs.readdirSync;
     require('discord.js').Client = jest.fn(() => mockDiscordClient);
-    require('./settings').mockImplementation(() => mockSettingsManager);
+    require('../settings.js').mockImplementation(() => mockSettingsManager);
 
     // テストに必要な変数をエクスポート
     moduleExports.server = mockServer;
@@ -100,8 +100,12 @@ describe('E2E Test: Web Server and Overlay Communication', () => {
 
     afterAll(async () => {
         // サーバーとブラウザを確実に閉じる
-        await browser.close();
-        await new Promise(resolve => server.close(resolve));
+        if (browser) {
+            await browser.close();
+        }
+        if (server) {
+            await new Promise(resolve => server.close(resolve));
+        }
     }, 30000);
 
     test('should display a comment when a message is sent', async () => {
