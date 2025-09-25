@@ -24,10 +24,29 @@ const mockSettingsManager = {
     setSetting: jest.fn(),
 };
 
-// settings.jsモジュール全体をモック
+// index.jsのsettingsManagerがモックのioインスタンスを使うようにモックする
 jest.mock('../settings', () => {
-    // index.jsがsettings.jsを呼び出すと、このモック関数が返される
     return jest.fn(() => mockSettingsManager);
+});
+
+// index.jsのサーバーとioインスタンスをモックする
+jest.mock('http', () => {
+    return {
+        createServer: jest.fn(() => ({
+            listen: jest.fn(),
+            on: jest.fn()
+        }))
+    };
+});
+
+jest.mock('socket.io', () => {
+    return {
+        Server: jest.fn(() => ({
+            on: jest.fn(),
+            emit: jest.fn(),
+            attach: jest.fn()
+        }))
+    };
 });
 
 // fsモジュールをモックし、ファイル読み込みを回避
@@ -39,11 +58,9 @@ jest.mock('fs', () => ({
 
 // discord.jsモジュールをモック
 jest.mock('discord.js', () => {
-    // Discordイベントを制御するためのハンドラーを保存するオブジェクト
     const eventHandlers = {};
 
     return {
-        // Clientクラスのコンストラクタをモック
         Client: jest.fn(() => ({
             user: { tag: 'TestBot#1234' },
             on: jest.fn((event, callback) => {
@@ -82,33 +99,36 @@ jest.mock('discord.js', () => {
     };
 });
 
+// index.js をモックした後に読み込む
+require('../index');
+
 describe('E2E Test: Web Server and Overlay Communication', () => {
     let server;
     let browser;
     let page;
     
     beforeAll(async () => {
-        // テストの前に、モックされたサーバーを起動
-        server = mockServer;
-        server.listen(3000);
-
         // Playwrightでブラウザを起動
         browser = await chromium.launch();
         page = await browser.newPage();
     }, 30000); // タイムアウトを延長
 
     afterAll(async () => {
-        // テストの後に、ブラウザとサーバーを確実に閉じる
+        // テストの後に、ブラウザを確実に閉じる
         await browser.close();
-        await new Promise(resolve => server.close(resolve));
     }, 30000);
 
     test('should display a comment when a message is sent to the watching channel', async () => {
-        // `index.js`をロードし、モックされた環境で実行
-        const indexModule = require('../index');
-
         // Playwrightで`index.html`を開く
         await page.goto(`file://${path.join(__dirname, '../public/index.html')}`);
+        
+        // テスト内で動的にモックioのイベントリスナーを設定
+        mockIo.on('connection', socket => {
+            // クライアントが接続したら、コメントイベントを送信する
+            socket.on('send-message', msg => {
+                mockIo.emit('comment', msg);
+            });
+        });
 
         // 監視チャンネルIDを設定
         mockSettingsManager.setWatchingChannelId('mock-channel-id');
