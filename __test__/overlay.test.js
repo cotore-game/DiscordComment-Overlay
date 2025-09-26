@@ -1,154 +1,104 @@
-const { chromium } = require('playwright');
-const path = require('path');
-const http = require('http');
-const { Server } = require('socket.io');
+/**
+ * @jest-environment jsdom
+ */
+const fs = require('fs');
+const { EventEmitter } = require('events');
+jest.mock('fs');
 
-// テストに必要なサーバーとIOインスタンスをここで作成
-const mockServer = http.createServer();
-const mockIo = new Server(mockServer);
+describe('settings.js', () => {
+  let ioMock;
+  let settings;
 
-// settingsManagerのモックを作成し、テストで操作可能にする
-const mockSettingsManager = {
-    loadSettings: jest.fn(),
-    saveSettings: jest.fn(),
-    emitSettings: jest.fn(),
-    getSettings: jest.fn(() => ({
-        font_size: 60,
-        speed: 8,
-        color: '#ffffff',
-        outline_size: 2,
-        outline_color: '#000000',
-    })),
-    setWatchingChannelId: jest.fn(),
-    getWatchingChannelId: jest.fn(() => 'mock-channel-id'),
-    setSetting: jest.fn(),
-};
+  beforeEach(() => {
+    fs.existsSync.mockReset();
+    fs.readFileSync.mockReset();
+    fs.writeFileSync.mockReset();
 
-// index.jsのsettingsManagerがモックのioインスタンスを使うようにモックする
-jest.mock('../settings', () => {
-    return jest.fn(() => mockSettingsManager);
+    ioMock = new EventEmitter();
+    ioMock.emit = jest.fn();
+
+    jest.isolateModules(() => {
+      settings = require('../settings')(ioMock);
+    });
+  });
+
+  test('設定が存在しない場合、デフォルト設定を保存する', () => {
+    fs.existsSync.mockReturnValue(false);
+
+    settings.loadSettings();
+
+    expect(fs.writeFileSync).toHaveBeenCalled();
+  });
+
+  test('設定ファイルが存在する場合、マージして読み込む', () => {
+    fs.existsSync.mockReturnValue(true);
+    fs.readFileSync.mockReturnValue(JSON.stringify({ font_size: 42 }));
+
+    settings.loadSettings();
+
+    expect(settings.getSettings().font_size).toBe(42);
+  });
+
+  test('setSettingで設定が更新・保存・emitされる', () => {
+    settings.setSetting('color', '#ff0000');
+
+    expect(settings.getSettings().color).toBe('#ff0000');
+    expect(fs.writeFileSync).toHaveBeenCalled();
+    expect(ioMock.emit).toHaveBeenCalledWith('settings', expect.any(Object));
+  });
+
+  test('watchingChannelIdのsetter/getterが動作する', () => {
+    settings.setWatchingChannelId('12345');
+    expect(settings.getWatchingChannelId()).toBe('12345');
+  });
 });
 
-// index.jsのサーバーとioインスタンスをモックする
-jest.mock('http', () => {
-    return {
-        createServer: jest.fn(() => ({
-            listen: jest.fn(),
-            on: jest.fn()
-        }))
-    };
-});
+describe('overlay front-end', () => {
+  let socketMock;
+  let script;
 
-jest.mock('socket.io', () => {
-    return {
-        Server: jest.fn(() => ({
-            on: jest.fn(),
-            emit: jest.fn(),
-            attach: jest.fn()
-        }))
-    };
-});
+  beforeEach(() => {
+    // HTMLの準備
+    document.body.innerHTML = `
+      <html>
+        <head></head>
+        <body></body>
+      </html>
+    `;
 
-// fsモジュールをモックし、ファイル読み込みを回避
-jest.mock('fs', () => ({
-    ...jest.requireActual('fs'),
-    // commandsディレクトリの読み込みを回避
-    readdirSync: jest.fn(() => []), 
-}));
+    // ソケットのモック
+    socketMock = new EventEmitter();
 
-// discord.jsモジュールをモック
-jest.mock('discord.js', () => {
-    const eventHandlers = {};
+    // script.jsを読み込む
+    global.io = () => socketMock;
+    jest.isolateModules(() => {
+      script = require('../public/script.js'); 
+    });
+  });
 
-    return {
-        Client: jest.fn(() => ({
-            user: { tag: 'TestBot#1234' },
-            on: jest.fn((event, callback) => {
-                eventHandlers[event] = callback;
-            }),
-            once: jest.fn((event, callback) => {
-                eventHandlers[event] = callback;
-            }),
-            login: jest.fn(() => {
-                // loginが呼ばれたらreadyイベントを即座に発火
-                if (eventHandlers.ready) {
-                    eventHandlers.ready();
-                }
-            }),
-        })),
-        GatewayIntentBits: {
-            Guilds: 1,
-            GuildMessages: 1,
-            MessageContent: 1,
-        },
-        EmbedBuilder: jest.fn(() => ({
-            setColor: jest.fn(() => ({
-                setTitle: jest.fn(() => ({
-                    addFields: jest.fn(() => ({
-                        setDescription: jest.fn(() => ({}))
-                    }))
-                }))
-            })),
-        })),
-        // テストコードからイベントをトリガーするためのヘルパー関数
-        __triggerEvent: (event, ...args) => {
-            if (eventHandlers[event]) {
-                eventHandlers[event](...args);
-            }
-        },
-    };
-});
+  test('commentイベントでdiv.commentが追加される', () => {
+    socketMock.emit('comment', 'テストコメント');
 
-// index.js をモックした後に読み込む
-require('../index');
+    const div = document.querySelector('.comment');
+    expect(div).not.toBeNull();
+    expect(div.textContent).toBe('テストコメント');
+  });
 
-describe('E2E Test: Web Server and Overlay Communication', () => {
-    let server;
-    let browser;
-    let page;
-    
-    beforeAll(async () => {
-        // Playwrightでブラウザを起動
-        browser = await chromium.launch();
-        page = await browser.newPage();
-    }, 30000); // タイムアウトを延長
+  test('settingsイベントでCSS変数が反映される', () => {
+    socketMock.emit('settings', {
+      speed: 5,
+      font_size: 40,
+      color: '#00ff00',
+      outline_size: 3,
+      outline_color: '#ff00ff'
+    });
 
-    afterAll(async () => {
-        // テストの後に、ブラウザを確実に閉じる
-        await browser.close();
-    }, 30000);
+    const root = document.documentElement;
 
-    test('should display a comment when a message is sent to the watching channel', async () => {
-        // Playwrightで`index.html`を開く
-        await page.goto(`file://${path.join(__dirname, '../public/index.html')}`);
-        
-        // テスト内で動的にモックioのイベントリスナーを設定
-        mockIo.on('connection', socket => {
-            // クライアントが接続したら、コメントイベントを送信する
-            socket.on('send-message', msg => {
-                mockIo.emit('comment', msg);
-            });
-        });
-
-        // 監視チャンネルIDを設定
-        mockSettingsManager.setWatchingChannelId('mock-channel-id');
-
-        // ダミーのメッセージオブジェクトを作成
-        const mockMsg = {
-            author: { bot: false },
-            content: 'Hello, test!',
-            channelId: 'mock-channel-id',
-        };
-
-        // メッセージ作成イベントをトリガー
-        const { __triggerEvent } = require('discord.js');
-        __triggerEvent('messageCreate', mockMsg);
-
-        // 新しいdiv要素が表示されるまで待機
-        await page.waitForSelector('.comment', { state: 'visible', timeout: 5000 });
-
-        // div要素の内容を確認
-        const commentText = await page.textContent('.comment');
-        expect(commentText).toBe('Hello, test!');
-    }, 30000);
+    expect(root.style.getPropertyValue('--speed')).toBe('5s');
+    expect(root.style.getPropertyValue('--font-size')).toBe('40px');
+    expect(root.style.getPropertyValue('--color')).toBe('#00ff00');
+    expect(root.style.getPropertyValue('--outline-size')).toBe('3px');
+    expect(root.style.getPropertyValue('--outline-color')).toBe('#ff00ff');
+  });
 });
