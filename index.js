@@ -115,6 +115,13 @@ function createApp({
     return { app, server, io, client };
 }
 
+ERROR!
+ERROR!
+ERROR!
+ERROR!
+ERROR!
+
+
 // 実行時のみサーバー起動
 if (require.main === module) {
     const { server, client } = createApp();
