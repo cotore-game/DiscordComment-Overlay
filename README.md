@@ -40,9 +40,6 @@ Botの作成に当たっては下記の要件を満たしてください。
   - `Bot Permissions`で`Send Messages`と`Read Message History`を選択してください。
   ※いずれも、メッセージに反応するために必須です。
 
-Botを
-
-
 ### 2. Discord Botを作成する
 
 1. にアクセスしてログインします。
@@ -88,7 +85,8 @@ node index.js
 
 ### 3. Discord コマンド
 
-すべてのコマンドは `!nico` で始まります。
+- `!nico`
+  コマンドの一覧を確認する
 
 #### 基本操作
 
