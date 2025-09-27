@@ -27,10 +27,10 @@ cd DiscordComment-Overlay
 npm install
 ```
 
-### 2. DiscordBotを作成する
+### 2. DiscordBotTokenを取得する
 
 [Discord Developer Portal](https://discord.com/developers/applications)にてBotを作成し、`Token`を取得してください。
-取得した`Token`は、コピーして保存して置いてください。
+取得した`Token`は、コピーして保存しておいてください。
 **なお、**`Token`**を知っている人全員がこのBotを操作することができます。基本的に漏洩しないようにしてください。**
 
 Botの作成に当たっては下記の要件を満たしてください。
@@ -39,15 +39,6 @@ Botの作成に当たっては下記の要件を満たしてください。
   - `Privileged Gateway Intents`で、`Message Content Intent`を有効化してください。
   - `Bot Permissions`で`Send Messages`と`Read Message History`を選択してください。
   ※いずれも、メッセージに反応するために必須です。
-
-### 2. Discord Botを作成する
-
-1. にアクセスしてログインします。
-2. `New Application`をクリックしてアプリケーションを作成します。
-3. 左メニューから`Bot`タブを開きます。
-4. `Add Bot`をクリックしてBotを作成します。
-5. `Token`をコピーして保存しておいてください。
-6. `Privileged Gateway Intents`で、`Message Content Intent`を有効化してください。
 
 ### 3. Botをサーバーに招待する
 
